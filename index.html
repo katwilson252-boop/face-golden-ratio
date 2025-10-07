@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Face Golden Ratio Checker</title>
+  <style>
+    body { font-family: Arial, sans-serif; display:flex; gap:20px; align-items:flex-start; padding:20px; }
+    .left { max-width:680px; }
+    canvas { border: 2px solid #222; border-radius:8px; }
+    .controls { margin-top:10px; }
+    .info { width:320px; padding:12px; border:1px solid #ccc; border-radius:8px; }
+    .big { font-size:1.15rem; font-weight:700; }
+    .small { color:#555; font-size:0.9rem; }
+    .result { margin-top:8px; padding:8px; background:#f7f7f7; border-radius:6px; }
+    button { padding:6px 10px; border-radius:6px; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <div class="left">
+    <div>
+      <video id="video" playsinline style="display:none;"></video>
+      <canvas id="output" width="640" height="480"></canvas>
+    </div>
+    <div class="controls">
+      <button id="snapBtn">Take snapshot (freeze)</button>
+      <button id="resumeBtn" disabled>Resume live</button>
+      <span class="small" id="status">Status: waiting for face...</span>
+    </div>
+  </div>
+
+  <div class="info">
+    <div class="big">Face Golden Ratio Checker</div>
+    <div class="small">This runs entirely on your computer in the browser. No images are sent anywhere.</div>
+
+    <div class="result" id="resultsBox">
+      <div><strong>Face height (forehead→chin):</strong> <span id="fh">—</span> px</div>
+      <div><strong>Lower face (nose tip→chin):</strong> <span id="lf">—</span> px</div>
+      <div><strong>Face width (cheek→cheek):</strong> <span id="fw">—</span> px</div>
+      <hr />
+      <div><strong>Ratio A (height / lower face):</strong> <span id="rA">—</span></div>
+      <div><strong>Ratio B (height / width):</strong> <span id="rB">—</span></div>
+      <div><strong>How close to golden (1.618):</strong></div>
+      <div>Ratio A: <span id="closeA">—</span>%  —  Ratio B: <span id="closeB">—</span>%</div>
+    </div>
+
+    <div style="margin-top:10px" class="small">
+      Tips: Sit in front of camera, keep face steady, make sure lighting is good. Results are approximate — camera angle, hairline visibility, and pose change the numbers.
+    </div>
+  </div>
+
+  <!-- MediaPipe FaceMesh (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+  <script>
+    // Helper math
+    function dist(a,b){ return Math.hypot(a.x - b.x, a.y - b.y); }
+    function format(n){ return (Math.round(n*100)/100).toFixed(2); }
+    const GOLDEN = 1.618;
+
+    // DOM
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('output');
+    const ctx = canvas.getContext('2d');
+    const status = document.getElementById('status');
+    const fhEl = document.getElementById('fh');
+    const lfEl = document.getElementById('lf');
+    const fwEl = document.getElementById('fw');
+    const rAEl = document.getElementById('rA');
+    const rBEl = document.getElementById('rB');
+    const closeAEl = document.getElementById('closeA');
+    const closeBEl = document.getElementById('closeB');
+    const snapBtn = document.getElementById('snapBtn');
+    const resumeBtn = document.getElementById('resumeBtn');
+
+    let cameraObj = null;
+    let frozen = false;
+
+    // create FaceMesh from MediaPipe
+    const faceMesh = new FaceMesh({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+    });
+    faceMesh.setOptions({
+      maxNumFaces: 1,
+      refineLandmarks: true,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+
+    // Called when FaceMesh has results
+    faceMesh.onResults(onResults);
+
+    // Start camera using MediaPipe Camera helper
+    async function startCamera(){
+      cameraObj = new Camera(video, {
+        onFrame: async () => {
+          if(!frozen) await faceMesh.send({image: video});
+        },
+        width: 640,
+        height: 480
+      });
+      await cameraObj.start();
+    }
+
+    // Map of landmark indexes we use
+    const IDX = { forehead:10, chin:152, noseTip:1, leftCheek:234, rightCheek:454 };
+
+    function onResults(results){
+      // Draw camera image
+      ctx.save();
+      ctx.clearRect(0,0,canvas.width, canvas.height);
+      ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+
+      if(!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0){
+        status.textContent = "Status: no face detected — try moving forward or improving light.";
+        updateUIEmpty();
+        ctx.restore();
+        return;
+      }
+
+      const landmarks = results.multiFaceLandmarks[0];
+
+      const toPixel = (idx) => {
+        const p = landmarks[idx];
+        return { x: p.x * canvas.width, y: p.y * canvas.height };
+      };
+
+      const forehead = toPixel(IDX.forehead);
+      const chin = toPixel(IDX.chin);
+      const noseTip = toPixel(IDX.noseTip);
+      const leftCheek = toPixel(IDX.leftCheek);
+      const rightCheek = toPixel(IDX.rightCheek);
+
+      function drawPoint(pt, color){ ctx.beginPath(); ctx.arc(pt.x, pt.y, 6, 0, 2*Math.PI); ctx.fillStyle = color; ctx.fill(); }
+      ctx.globalAlpha = 0.9;
+      drawPoint(forehead, '#FFCC00');
+      drawPoint(chin, '#00CCFF');
+      drawPoint(noseTip,'#FF6699');
+      drawPoint(leftCheek,'#66FF66'); drawPoint(rightCheek,'#66FF66');
+
+      ctx.beginPath(); ctx.moveTo(forehead.x, forehead.y); ctx.lineTo(chin.x, chin.y); ctx.strokeStyle = '#FFCC00'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(noseTip.x, noseTip.y); ctx.lineTo(chin.x, chin.y); ctx.strokeStyle = '#FF6699'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(leftCheek.x, leftCheek.y); ctx.lineTo(rightCheek.x, rightCheek.y); ctx.strokeStyle = '#66FF66'; ctx.lineWidth = 2; ctx.stroke();
+
+      const faceHeight = dist(forehead, chin);
+      const lowerFace = dist(noseTip, chin);
+      const faceWidth = dist(leftCheek, rightCheek);
+
+      const ratioA = faceHeight / (lowerFace || 1);
+      const ratioB = faceHeight / (faceWidth || 1);
+
+      const closeness = (r) => Math.abs(r - GOLDEN)/GOLDEN * 100;
+
+      fhEl.textContent = format(faceHeight);
+      lfEl.textContent = format(lowerFace);
+      fwEl.textContent = format(faceWidth);
+      rAEl.textContent = format(ratioA);
+      rBEl.textContent = format(ratioB);
+      closeAEl.textContent = format(closeness(ratioA));
+      closeBEl.textContent = format(closeness(ratioB));
+
+      status.textContent = "Status: face detected. Results update live.";
+      ctx.restore();
+    }
+
+    function updateUIEmpty(){
+      fhEl.textContent = '—'; lfEl.textContent = '—'; fwEl.textContent = '—';
+      rAEl.textContent = '—'; rBEl.textContent = '—'; closeAEl.textContent = '—'; closeBEl.textContent = '—';
+    }
+
+    snapBtn.onclick = () => {
+      frozen = true;
+      snapBtn.disabled = true;
+      resumeBtn.disabled = false;
+      status.textContent = "Status: snapshot (frozen). Click Resume to continue.";
+    };
+    resumeBtn.onclick = () => {
+      frozen = false;
+      snapBtn.disabled = false;
+      resumeBtn.disabled = true;
+      status.textContent = "Status: resuming live.";
+    };
+
+    startCamera().catch(err => {
+      console.error(err);
+      status.textContent = "Status: cannot start camera. Check permissions or use Live Server on localhost.";
+    });
+  </script>
+</body>
+</html>

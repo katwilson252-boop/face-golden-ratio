@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Teleprompter — Face Golden Ratio Script</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body { margin:0; background:#000; color:#fff; font-family: Arial, Helvetica, sans-serif; }
+    .line { font-size: 48px; line-height:1.4; padding: 40px; text-align:center; }
+    .controls { position: fixed; bottom: 10px; left: 0; right: 0; display:flex; justify-content:center; gap:10px; }
+    button, input { padding:10px 14px; font-size:16px; border-radius:6px; border: none; }
+    .small { font-size:14px; opacity:0.85; }
+    .center { display:flex; align-items:center; justify-content:center; height:100vh; }
+  </style>
+</head>
+<body>
+  <div id="viewport" class="center">
+    <div id="text" class="line">Press Start to begin teleprompter</div>
+  </div>
+
+  <div class="controls">
+    <button id="prev">◀ Prev</button>
+    <button id="start">▶ Start</button>
+    <button id="pause" disabled>Pause</button>
+    <button id="next">Next ▶</button>
+    <label class="small">Speed: <input id="speed" type="range" min="0.5" max="3" step="0.1" value="1"></label>
+  </div>
+
+  <script>
+    const lines = [
+`Face Golden Ratio Checker — Run it in VS Code.`,
+`Hi! In this short video I'll show you how to open the project in Visual Studio Code, run it with Live Server, and see your face golden-ratio results live from your webcam.`,
+`First, open Visual Studio Code. Create a new folder named 'face-golden-ratio' and open it in VS Code. I'll make an index.html file inside.`,
+`Copy the provided index.html code and paste it into the file. Save (Cmd/Ctrl+S). This code asks for camera permissions and runs face detection in your browser.`,
+`Open Extensions (left bar), search 'Live Server', and click Install. After installing, click 'Go Live' at the bottom right.`,
+`Your browser will open a localhost page. Click 'Allow' when it asks for camera access. Move your face into view and wait a second — landmarks will appear and the numbers will update.`,
+`Use 'Take snapshot' to freeze the frame, or 'Resume live' to continue. Try different angles and lighting to see changes.`,
+`If nothing shows, check camera permissions, try a different browser, or open DevTools (F12) to view console errors.`,
+`That's it! You made it. Re-record a clean take if you like. Bye!`
+    ];
+    let idx = 0, timer = null;
+    const textEl = document.getElementById('text');
+    const speedEl = document.getElementById('speed');
+
+    function show(i){ textEl.textContent = lines[i] || ""; }
+    function startAuto(){
+      const secsPerLine = 3 / parseFloat(speedEl.value); // base 3 seconds per line
+      timer = setInterval(() => { idx++; if(idx >= lines.length){ clearInterval(timer); document.getElementById('pause').disabled = true; } else show(idx); }, secsPerLine * 1000);
+      document.getElementById('pause').disabled = false;
+    }
+    function stopAuto(){ clearInterval(timer); timer = null; }
+
+    document.getElementById('start').onclick = () => { show(idx); startAuto(); };
+    document.getElementById('pause').onclick = () => { stopAuto(); document.getElementById('pause').disabled = true; };
+    document.getElementById('next').onclick = () => { stopAuto(); idx = Math.min(idx + 1, lines.length-1); show(idx); };
+    document.getElementById('prev').onclick = () => { stopAuto(); idx = Math.max(idx - 1, 0); show(idx); };
+    speedEl.oninput = () => { if(timer){ stopAuto(); startAuto(); } };
+    show(0);
+  </script>
+</body>
+</html>

@@ -161,21 +161,28 @@
 
       // Face Shape Detection
       const ratioHeightWidth = faceHeight / faceWidth;
-      let faceShape = '';
-      if(ratioHeightWidth >= 1.55 && ratioHeightWidth <= 1.65){
-        faceShape = 'Oval';
-      } else if(ratioHeightWidth < 1.5){
-        faceShape = 'Round';
-      } else if(ratioHeightWidth >= 1.4 && ratioHeightWidth <= 1.5){
-        faceShape = 'Square';
-      } else if(ratioHeightWidth > 1.65 && faceWidth < faceHeight){
-        faceShape = 'Heart';
-      } else if(ratioHeightWidth > 1.7){
-        faceShape = 'Long / Rectangular';
-      } else {
-        faceShape = 'Unknown';
-      }
-      faceShapeEl.textContent = faceShape;
+      // Face Shape Detection
+// Using simple ratios: height/width and lower face/width
+let faceShape = '';
+const ratioHeightWidth = faceHeight / faceWidth;
+const lowerFaceRatio = lowerFace / faceWidth;
+
+if(ratioHeightWidth >= 1.55 && ratioHeightWidth <= 1.65){
+    faceShape = 'Oval';
+} else if(ratioHeightWidth < 1.5 && Math.abs(leftCheek.y - rightCheek.y)/faceHeight < 0.1){
+    faceShape = 'Round';
+} else if(Math.abs(leftCheek.y - rightCheek.y)/faceHeight > 0.15 && ratioHeightWidth >= 1.4 && ratioHeightWidth <= 1.5){
+    faceShape = 'Square';
+} else if(ratioHeightWidth > 1.65 && lowerFaceRatio < 0.5){
+    faceShape = 'Heart';
+} else if(ratioHeightWidth > 1.7){
+    faceShape = 'Long / Rectangular';
+} else {
+    faceShape = 'Unknown';
+}
+
+faceShapeEl.textContent = faceShape;
+
 
       status.textContent = "Status: face detected. Results update live.";
       ctx.restore();

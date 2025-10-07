@@ -5,15 +5,23 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Face Golden Ratio Checker</title>
   <style>
-    body { font-family: Arial, sans-serif; display:flex; gap:20px; align-items:flex-start; padding:20px; }
+    body { 
+      font-family: Arial, sans-serif; 
+      display:flex; 
+      gap:20px; 
+      align-items:flex-start; 
+      padding:20px; 
+      background: linear-gradient(120deg, #f0f0f0, #d0e0ff);
+    }
     .left { max-width:680px; }
-    canvas { border: 2px solid #222; border-radius:8px; }
+    canvas { border: 3px solid #222; border-radius:12px; box-shadow: 0 0 20px #66ccff; }
     .controls { margin-top:10px; }
-    .info { width:320px; padding:12px; border:1px solid #ccc; border-radius:8px; }
-    .big { font-size:1.15rem; font-weight:700; }
+    .info { width:340px; padding:16px; border:1px solid #ccc; border-radius:12px; background:#fff; box-shadow:0 0 15px rgba(0,0,0,0.1);}
+    .big { font-size:1.25rem; font-weight:700; color:#333; }
     .small { color:#555; font-size:0.9rem; }
-    .result { margin-top:8px; padding:8px; background:#f7f7f7; border-radius:6px; }
-    button { padding:6px 10px; border-radius:6px; cursor:pointer; }
+    .result { margin-top:12px; padding:10px; background:#f7f7f7; border-radius:8px; }
+    button { padding:8px 12px; border-radius:8px; cursor:pointer; background:#66ccff; color:#fff; border:none; transition:0.2s; }
+    button:disabled { background:#aaa; cursor:not-allowed; }
   </style>
 </head>
 <body>
@@ -30,8 +38,8 @@
   </div>
 
   <div class="info">
-    <div class="big">Face Golden Ratio Checker</div>
-    <div class="small">This runs entirely on your computer in the browser. No images are sent anywhere.</div>
+    <div class="big">💫 Your Face Symmetry Score</div>
+    <div class="small">You’re closer to perfection than you think!<br>This runs entirely on your computer in the browser.</div>
 
     <div class="result" id="resultsBox">
       <div><strong>Face height (forehead→chin):</strong> <span id="fh">—</span> px</div>
@@ -42,6 +50,7 @@
       <div><strong>Ratio B (height / width):</strong> <span id="rB">—</span></div>
       <div><strong>How close to golden (1.618):</strong></div>
       <div>Ratio A: <span id="closeA">—</span>%  —  Ratio B: <span id="closeB">—</span>%</div>
+      <div><strong>Face Shape:</strong> <span id="faceShape">—</span></div>
     </div>
 
     <div style="margin-top:10px" class="small">
@@ -54,12 +63,10 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
   <script>
-    // Helper math
     function dist(a,b){ return Math.hypot(a.x - b.x, a.y - b.y); }
     function format(n){ return (Math.round(n*100)/100).toFixed(2); }
     const GOLDEN = 1.618;
 
-    // DOM
     const video = document.getElementById('video');
     const canvas = document.getElementById('output');
     const ctx = canvas.getContext('2d');
@@ -71,13 +78,13 @@
     const rBEl = document.getElementById('rB');
     const closeAEl = document.getElementById('closeA');
     const closeBEl = document.getElementById('closeB');
+    const faceShapeEl = document.getElementById('faceShape');
     const snapBtn = document.getElementById('snapBtn');
     const resumeBtn = document.getElementById('resumeBtn');
 
     let cameraObj = null;
     let frozen = false;
 
-    // create FaceMesh from MediaPipe
     const faceMesh = new FaceMesh({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
     });
@@ -87,40 +94,32 @@
       minDetectionConfidence: 0.5,
       minTrackingConfidence: 0.5
     });
-
-    // Called when FaceMesh has results
     faceMesh.onResults(onResults);
 
-    // Start camera using MediaPipe Camera helper
     async function startCamera(){
       cameraObj = new Camera(video, {
-        onFrame: async () => {
-          if(!frozen) await faceMesh.send({image: video});
-        },
+        onFrame: async () => { if(!frozen) await faceMesh.send({image: video}); },
         width: 640,
         height: 480
       });
       await cameraObj.start();
     }
 
-    // Map of landmark indexes we use
     const IDX = { forehead:10, chin:152, noseTip:1, leftCheek:234, rightCheek:454 };
 
     function onResults(results){
-      // Draw camera image
       ctx.save();
-      ctx.clearRect(0,0,canvas.width, canvas.height);
+      ctx.clearRect(0,0,canvas.width,canvas.height);
       ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
 
       if(!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0){
-        status.textContent = "Status: no face detected — try moving forward or improving light.";
+        status.textContent = "Status: no face detected.";
         updateUIEmpty();
         ctx.restore();
         return;
       }
 
       const landmarks = results.multiFaceLandmarks[0];
-
       const toPixel = (idx) => {
         const p = landmarks[idx];
         return { x: p.x * canvas.width, y: p.y * canvas.height };
@@ -132,16 +131,16 @@
       const leftCheek = toPixel(IDX.leftCheek);
       const rightCheek = toPixel(IDX.rightCheek);
 
-      function drawPoint(pt, color){ ctx.beginPath(); ctx.arc(pt.x, pt.y, 6, 0, 2*Math.PI); ctx.fillStyle = color; ctx.fill(); }
+      function drawPoint(pt,color){ ctx.beginPath(); ctx.arc(pt.x, pt.y,6,0,2*Math.PI); ctx.fillStyle=color; ctx.fill(); }
       ctx.globalAlpha = 0.9;
-      drawPoint(forehead, '#FFCC00');
-      drawPoint(chin, '#00CCFF');
+      drawPoint(forehead,'#FFCC00');
+      drawPoint(chin,'#00CCFF');
       drawPoint(noseTip,'#FF6699');
       drawPoint(leftCheek,'#66FF66'); drawPoint(rightCheek,'#66FF66');
 
-      ctx.beginPath(); ctx.moveTo(forehead.x, forehead.y); ctx.lineTo(chin.x, chin.y); ctx.strokeStyle = '#FFCC00'; ctx.lineWidth = 2; ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(noseTip.x, noseTip.y); ctx.lineTo(chin.x, chin.y); ctx.strokeStyle = '#FF6699'; ctx.lineWidth = 2; ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(leftCheek.x, leftCheek.y); ctx.lineTo(rightCheek.x, rightCheek.y); ctx.strokeStyle = '#66FF66'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(forehead.x,forehead.y); ctx.lineTo(chin.x,chin.y); ctx.strokeStyle='#FFCC00'; ctx.lineWidth=2; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(noseTip.x,noseTip.y); ctx.lineTo(chin.x,chin.y); ctx.strokeStyle='#FF6699'; ctx.lineWidth=2; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(leftCheek.x,leftCheek.y); ctx.lineTo(rightCheek.x,rightCheek.y); ctx.strokeStyle='#66FF66'; ctx.lineWidth=2; ctx.stroke();
 
       const faceHeight = dist(forehead, chin);
       const lowerFace = dist(noseTip, chin);
@@ -160,6 +159,24 @@
       closeAEl.textContent = format(closeness(ratioA));
       closeBEl.textContent = format(closeness(ratioB));
 
+      // Face Shape Detection
+      const ratioHeightWidth = faceHeight / faceWidth;
+      let faceShape = '';
+      if(ratioHeightWidth >= 1.55 && ratioHeightWidth <= 1.65){
+        faceShape = 'Oval';
+      } else if(ratioHeightWidth < 1.5){
+        faceShape = 'Round';
+      } else if(ratioHeightWidth >= 1.4 && ratioHeightWidth <= 1.5){
+        faceShape = 'Square';
+      } else if(ratioHeightWidth > 1.65 && faceWidth < faceHeight){
+        faceShape = 'Heart';
+      } else if(ratioHeightWidth > 1.7){
+        faceShape = 'Long / Rectangular';
+      } else {
+        faceShape = 'Unknown';
+      }
+      faceShapeEl.textContent = faceShape;
+
       status.textContent = "Status: face detected. Results update live.";
       ctx.restore();
     }
@@ -167,14 +184,16 @@
     function updateUIEmpty(){
       fhEl.textContent = '—'; lfEl.textContent = '—'; fwEl.textContent = '—';
       rAEl.textContent = '—'; rBEl.textContent = '—'; closeAEl.textContent = '—'; closeBEl.textContent = '—';
+      faceShapeEl.textContent = '—';
     }
 
-    snapBtn.onclick = () => {
+       snapBtn.onclick = () => {
       frozen = true;
       snapBtn.disabled = true;
       resumeBtn.disabled = false;
       status.textContent = "Status: snapshot (frozen). Click Resume to continue.";
     };
+
     resumeBtn.onclick = () => {
       frozen = false;
       snapBtn.disabled = false;
@@ -189,3 +208,4 @@
   </script>
 </body>
 </html>
+

@@ -1,37 +1,81 @@
-Face Golden Ratio — Recording Kit
+💫 Face Golden Ratio Checker
 ================================
+ A fun and interactive web app that analyzes your face in real-time and calculates how close your facial proportions are to the **golden ratio (1.618)**. Runs entirely in your browser — **no images are uploaded anywhere**.
 
-What's included:
-- script.md            — Full narration script with timestamps.
-- shot_list.md         — Scene-by-scene shot list and timings.
-- teleprompter.html    — Simple teleprompter you can open in a browser.
-- recording_commands.sh— Example ffmpeg commands and OBS tips.
-- index.html           — The web page (paste-ready) that runs the demo.
-- THIS README.md
+---
 
-How to use:
-1. Unzip the kit folder (if downloaded as a zip).
-2. Open the folder in Visual Studio Code: File -> Open Folder -> select this folder.
-3. Open 'teleprompter.html' in a browser to use as a teleprompter while you record.
-4. In VS Code open 'index.html'. If you want to run it:
-   - Install Live Server extension (Extensions -> search "Live Server" -> Install).
-   - Click "Go Live" (bottom-right). A browser tab will open on localhost.
-   - Click "Allow" when the browser asks for camera access.
-5. Record:
-   - Easiest: Use OBS. Add Display Capture (VS Code), Video Capture Device (webcam), Audio Input (mic). Start Recording, read the teleprompter, stop recording.
-   - Quick command-line: use the ffmpeg examples in recording_commands.sh (edit device names first).
-6. Edit (optional): Use a simple editor (iMovie, Shotcut, OpenShot) to trim, add title, and export as MP4.
+## 🔹 Features
 
-Tips for a clean recording:
-- Use decent lighting facing your face (not strong backlight).
-- Place webcam at eye level.
-- Use an external mic if you have one.
-- Do 2 takes and pick the best one.
+- Real-time face detection using your webcam  
+- Calculates facial ratios:
+  - Face height (forehead → chin)  
+  - Lower face (nose tip → chin)  
+  - Face width (cheek → cheek)  
+  - Ratios compared to golden ratio
+- Shows a **Golden Match %** for fun feedback  
+- Modern UI with glowing borders, animated score bar, and emoji reactions  
+- Works offline after initial library load  
 
-Privacy note:
-All code runs locally in your browser. This kit does not upload your video or images anywhere.
+---
 
-If you'd like, I can:
-- create a shorter 60-second script,
-- help you write captions for the video,
-- or make a guide to edit the recording in iMovie/Shotcut.
+## 🖥️ Demo
+
+*Your browser will ask for camera permission. Make sure your face is well-lit and centered.*
+
+- Live webcam feed with landmarks overlay  
+- Real-time ratio calculations and golden match score  
+- Glowing UI with score animation and emoji feedback
+
+---
+
+## 🚀 How to Run Locally
+
+1. Clone or download this repository:
+   ```bash
+   git clone https://github.com/katwilson252-boop/face-golden-ratio.git
+   cd face-golden-ratio
+
+
+2. Start a local web server (Python 3):
+
+python3 -m http.server
+
+
+3. Open your browser and go to:
+
+http://localhost:8000/index.html
+
+
+4. Allow camera access when prompted.
+
+
+📦 File Structure
+face_golden_ratio_me/
+├─ index.html            # Main webpage
+├─ teleprompter.html     # Optional teleprompter for recording
+├─ README.md             # This file
+├─ script.md             # Development notes / instructions
+├─ shot_list.md          # Recording plan
+├─ recording_commands.sh # Terminal commands for recording
+
+
+⚡ Live on GitHub Pages
+
+You can also host your project online for free via GitHub Pages:
+
+https://katwilson252-boop.github.io/face-golden-ratio/
+
+🎨 Credits
+face-api.js -— for face detection
+MediaPipe / FaceMesh -— optional for advanced detection
+
+>>Project designed and coded by Alina Iram<<
+
+
+📸 Tips
+
+💡 Sit in front of a well-lit camera
+
+🤳 Keep your face steady for accurate results
+
+🖼️ Make sure your entire forehead and chin are visible
